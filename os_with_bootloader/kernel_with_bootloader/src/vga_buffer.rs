@@ -1,10 +1,31 @@
-// kernel_with_bootloader/src/vga_buffer.rs
-
 use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
 
+const BUFFER_HEIGHT: usize = 25;
+const BUFFER_WIDTH: usize = 80;
+
+/// Structure representing a VGA screen character
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
+struct ScreenChar {
+    ascii_character: u8,
+    color_code: ColorCode,
+}
+
+/// Color code structure
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(transparent)]
+struct ColorCode(u8);
+
+impl ColorCode {
+    fn new(foreground: Color, background: Color) -> Self {
+        Self((background as u8) << 4 | (foreground as u8))
+    }
+}
+
+/// Color definitions for VGA text mode
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -27,31 +48,13 @@ pub enum Color {
     White = 15,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(transparent)]
-struct ColorCode(u8);
-
-impl ColorCode {
-    fn new(foreground: Color, background: Color) -> Self {
-        Self((background as u8) << 4 | (foreground as u8))
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(C)]
-struct ScreenChar {
-    ascii_character: u8,
-    color_code: ColorCode,
-}
-
-const BUFFER_HEIGHT: usize = 25;
-const BUFFER_WIDTH: usize = 80;
-
+/// The VGA buffer mapped to memory
 #[repr(transparent)]
 struct Buffer {
     chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
+/// VGA Writer to handle screen output
 pub struct Writer {
     column_position: usize,
     color_code: ColorCode,
@@ -59,6 +62,7 @@ pub struct Writer {
 }
 
 impl Writer {
+    /// Writes a single byte to the VGA buffer
     pub fn write_byte(&mut self, byte: u8) {
         match byte {
             b'\n' => self.new_line(),
@@ -79,6 +83,17 @@ impl Writer {
         }
     }
 
+    /// Writes a string to the screen
+    pub fn write_string(&mut self, s: &str) {
+        for byte in s.bytes() {
+            match byte {
+                0x20..=0x7e | b'\n' => self.write_byte(byte),
+                _ => self.write_byte(0xfe), // Unsupported characters replaced with '■'
+            }
+        }
+    }
+
+    /// Moves to the next line, scrolling if necessary
     fn new_line(&mut self) {
         for row in 1..BUFFER_HEIGHT {
             for col in 0..BUFFER_WIDTH {
@@ -90,6 +105,7 @@ impl Writer {
         self.column_position = 0;
     }
 
+    /// Clears a row by filling it with spaces
     fn clear_row(&mut self, row: usize) {
         let blank = ScreenChar {
             ascii_character: b' ',
@@ -99,17 +115,9 @@ impl Writer {
             self.buffer.chars[row][col].write(blank);
         }
     }
-
-    pub fn write_string(&mut self, s: &str) {
-        for byte in s.bytes() {
-            match byte {
-                0x20..=0x7e | b'\n' => self.write_byte(byte),
-                _ => self.write_byte(0xfe),
-            }
-        }
-    }
 }
 
+/// Implements the `fmt::Write` trait for `Writer`
 impl fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.write_string(s);
@@ -117,6 +125,7 @@ impl fmt::Write for Writer {
     }
 }
 
+/// Global writer instance with a mutex for safe access
 lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         column_position: 0,
@@ -125,7 +134,23 @@ lazy_static! {
     });
 }
 
+/// Print formatted text to the screen
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
     WRITER.lock().write_fmt(args).unwrap();
+}
+
+/// Macros for printing text to VGA buffer
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => {{
+        use core::fmt::Write;
+        let _ = write!(crate::vga_buffer::WRITER.lock(), $($arg)*);
+    }};
+}
+
+#[macro_export]
+macro_rules! println {
+    () => ($crate::print!("\n"));
+    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
 }

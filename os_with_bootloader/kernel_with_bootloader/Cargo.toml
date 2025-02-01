@@ -23,6 +23,10 @@ target = "x86_64-unknown-none"
 [unstable]
 build-std = ["core", "compiler_builtins"]
 
+[[bin]]
+name = "kernel_with_bootloader"
+path = "src/main.rs"
+
 
 
 

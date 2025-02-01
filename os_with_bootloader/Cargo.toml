@@ -16,7 +16,7 @@ bit_field = "0.10.2"
 bootloader = "0.9.29"
 
 [workspace]
-members = [".","kernel_with_bootloader"]
+members = ["kernel_with_bootloader"]
 
 [profile.dev]
 panic = "abort"

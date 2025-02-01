@@ -1,20 +1,19 @@
-#![no_std] 
+#![no_std]
 #![no_main]
-
-extern crate kernel_with_bootloader;
 
 use core::panic::PanicInfo;
 
-/// Panic handler for the OS.
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+/// OS entry point
+#[no_mangle]
+pub extern "C" fn _start() -> ! {
+    println!("Booting OS...");
+
+    // Directly load the kernel (bootloader handles this)
     loop {}
 }
 
-/// OS entry point.
-/// Calls the kernel entry function.
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    kernel_with_bootloader::main();
+/// Panic handler
+#[panic_handler]
+fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }

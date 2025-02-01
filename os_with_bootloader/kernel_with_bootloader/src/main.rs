@@ -1,33 +1,21 @@
 #![no_std]
-#![no_main]
 
 mod vga_buffer;
+mod panic;
+mod interrupts;
+mod gdt;
+mod memory;
 
 use core::panic::PanicInfo;
-use vga_buffer::{print, println};
 
-#[macro_export]
-macro_rules! print {
-    ($($arg:tt)*) => ($crate::vga_buffer::_print(format_args!($($arg)*)));
-}
-
-#[macro_export]
-macro_rules! println {
-    () => ($crate::print!("\n"));
-    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
-}
-
-/// Panic handler for kernel crashes.
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    println!("Kernel panic: {}", info);
-    loop {}
-}
-
-/// Entry point for the kernel.
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
+/// Kernel entry function.
+pub fn main() {
     println!("Welcome to the OS Kernel!");
-    println!("VGA text buffer working!");
-    loop {}
+    println!("Initializing system...");
+
+    gdt::init_gdt();
+    interrupts::init_idt();
+    unsafe { memory::init_memory_mapper(x86_64::VirtAddr::new(0)) };
+
+    println!("System ready!");
 }
