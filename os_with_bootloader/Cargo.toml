@@ -1,70 +1,15 @@
 [package]
 name = "os_with_bootloader"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 # used for UEFI booting in QEMU
-bootloader = "0.9"
-bootloader_api = "0.11.9"
-x86_64 = "0.14.13"
-volatile = "0.4.6"
-bitflags = "2.8.0"
-bit_field = "0.10.2"
+ovmf-prebuilt = "0.1.0-alpha.1"
 
 [build-dependencies]
-bootloader = "0.9.29"
+bootloader = "0.11"
+kernel_with_bootloader = { path = "kernel_with_bootloader", artifact = "bin", target = "x86_64-unknown-none" }
 
 [workspace]
 members = ["kernel_with_bootloader"]
-
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-panic = "abort"
-
-[build]
-target = "x86_64-unknown-none"
-
-[unstable]
-build-std = ["core", "compiler_builtins"]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

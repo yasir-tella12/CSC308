@@ -3,7 +3,6 @@ use std::process::Command;
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
-    // Use `bootimage` to create a bootable disk image
     let status = Command::new("cargo")
         .args(["bootimage"])
         .status()
@@ -12,6 +11,4 @@ fn main() {
     if !status.success() {
         panic!("bootimage failed!");
     }
-
-    println!("Bootimage created successfully!");
 }

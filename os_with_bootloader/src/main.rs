@@ -1,19 +1,20 @@
-#![no_std]
-#![no_main]
 
-use core::panic::PanicInfo;
+fn main() {
+    // Read env variables that were set in the build script
+    let uefi_path: &str = env!("UEFI_PATH");
+    let bios_path: &str = env!("BIOS_PATH");
 
-/// OS entry point
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    println!("Booting OS...");
+    // Choose whether to start the UEFI or BIOS image
+    let uefi: bool = false;
+    let mut cmd = std::process::Command::new("qemu-system-x86_64");
+    if uefi {
+        cmd.arg("-bios").arg(ovmf_prebuilt::ovmf_pure_efi());
+        cmd.arg("-drive").arg(format!("format=raw,file={}", uefi_path));
 
-    // Directly load the kernel (bootloader handles this)
-    loop {}
-}
+    } else {
+        cmd.arg("-drive").arg(format!("format=raw,file={}", bios_path));
+    }
 
-/// Panic handler
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
+    let mut child = cmd.spawn().unwrap();
+    child.wait().unwrap();
 }
